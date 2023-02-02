@@ -1,6 +1,11 @@
 package com.example.wearosapp;
 
 import android.app.Activity;
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,7 +21,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements SensorEventListener{
 
     private PrintWriter output;
     private BufferedReader input;
@@ -28,11 +33,29 @@ public class MainActivity extends Activity {
     private String SERVER_IP;
     private int SERVER_PORT=4321;
     private boolean connected=false;
+
+    private SensorManager sensorManager;
+    private Sensor stepsSensor;
+    private Sensor heartbeatSensor;
+
+    private TextView textViewHB;
+    private TextView textViewSteps;
+    private Sensor sensor;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        stepsSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+        heartbeatSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE);
+//        sensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+        textViewHB = findViewById(R.id.textHB);
+        textViewSteps = findViewById(R.id.stepcount);
 
         mIPTextView= findViewById(R.id.IPTextView);
         mConnectButton= findViewById(R.id.connectButton);
@@ -40,6 +63,10 @@ public class MainActivity extends Activity {
         mConnectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                sensorManager.registerListener((SensorEventListener) view.getContext(), stepsSensor, SensorManager.SENSOR_DELAY_NORMAL);
+                sensorManager.registerListener( (SensorEventListener) view.getContext(), heartbeatSensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+/*
                 if(connected)
                 {
                     try {
@@ -59,12 +86,45 @@ public class MainActivity extends Activity {
                     connected=true;
                     new ConnectToServer().execute("");
                 }
-
+*/
             }
         });
 
 
         //mTextView = binding.text;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        //sensorManager.unregisterListener(this);
+    }
+
+    @Override
+    public final void onSensorChanged(SensorEvent event) {
+        Log.i(TAG, "Hello");
+        if(event.sensor.getType()==Sensor.TYPE_HEART_RATE)
+        {
+            Log.i(TAG, "onSensorChanged: Heartbeat");
+            textViewHB.setText((int) event.values[0]+"");
+        }
+        else if(event.sensor.getType()==Sensor.TYPE_STEP_COUNTER)
+        {
+            Log.i(TAG, "onSensorChanged: stepcount");
+            textViewHB.setText((int) event.values[0]+"");
+        }
+    }
+
+
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
     }
 
     class ConnectToServer extends AsyncTask {
